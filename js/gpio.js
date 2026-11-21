@@ -159,6 +159,8 @@ export class PwmTable {
       r.className = 'pwm-row';
       r.innerHTML = '<b></b><i class="lvl"></i><span class="f"></span><span class="d"></span><span class="bar"><u></u></span>';
       r.querySelector('b').textContent = c.name;
+      // Every channel reports once at reset; show a row only once its output has done something
+      r.hidden = true;
       this.rows.set(c.name, r);
       r.dataset.order = (c.kind === 'pwm' ? 0 : 1000) + c.n;
       // keep pwm before tcu, each by number
@@ -172,6 +174,7 @@ export class PwmTable {
   flush() {
     for (const c of this.dirty) {
       const r = this.rows.get(c.name), t = pwmText(c);
+      if (c.period || c.lvl) r.hidden = false;
       r.querySelector('.lvl').dataset.lvl = c.lvl;
       r.querySelector('.f').textContent = t.hz || '-';
       r.querySelector('.d').textContent = t.duty || '-';
