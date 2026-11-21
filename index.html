@@ -12,7 +12,7 @@
 <body>
 <header>
   <h1>qemu-web</h1>
-  <span id="coi" class="badge" title="SharedArrayBuffer needs COOP and COEP headers"></span>
+  <span id="msg" class="badge" role="status" aria-live="polite" hidden></span>
   <span class="grow"></span>
   <label>Backend
     <select id="backend">
@@ -101,7 +101,6 @@
     <div id="tl-wrap"><canvas id="tl"></canvas></div>
   </section>
 </main>
-<div id="toast" role="status"></div>
 
 <script src="vendor/xterm.js"></script>
 <script src="vendor/addon-fit.js"></script>

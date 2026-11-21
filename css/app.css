@@ -31,6 +31,8 @@ h2 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing
 .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--line); color: var(--dim); }
 .badge.ok { color: var(--good); border-color: var(--good); }
 .badge.bad { color: var(--warn); border-color: var(--warn); }
+.badge.info { color: var(--accent); border-color: var(--accent); }
+#msg { min-width: 0; max-width: 60ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   grid-template-areas: "image controls" "console gpio" "timeline timeline"; }
 #image { grid-area: image; } #controls { grid-area: controls; } #console { grid-area: console; }
@@ -79,8 +81,6 @@ dt { color: var(--dim); } dd { margin: 0; overflow-wrap: anywhere; }
 #recent li { color: var(--dim); white-space: nowrap; }
 #recent b { color: var(--fg); font-weight: 600; }
 #tl-wrap { overflow: hidden; } #tl { display: block; }
-#toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 14px; border-radius: 6px; opacity: 0; pointer-events: none; transition: opacity .2s; }
-#toast.show { opacity: 1; }
 @media (max-width: 1000px) {
   main { grid-template-columns: minmax(0, 1fr); grid-template-areas: "image" "controls" "console" "gpio" "timeline"; }
   #term { height: 340px; }

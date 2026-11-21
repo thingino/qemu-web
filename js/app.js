@@ -6,12 +6,23 @@ import { STAGES, StageDetector, stripAnsi } from './stages.js';
 import { GpioModel, PinTable, Timeline } from './gpio.js';
 
 const $ = (id) => document.getElementById(id);
+// Messages show in the header; between messages it says whether the page is
+// isolated only when it is not (then the WebAssembly backend cannot run).
+const WARN = /fail|could not|blocked|too big|first|pick a|cannot|error/i;
+function restMsg() {
+  const m = $('msg');
+  m.className = 'badge bad';
+  m.textContent = 'not isolated: WebAssembly needs HTTPS or localhost';
+  m.title = 'The page must be cross-origin isolated (COOP and COEP) for QEMU\'s threads';
+  m.hidden = self.crossOriginIsolated;
+}
 const toast = (msg) => {
-  const t = $('toast');
-  t.textContent = msg;
-  t.classList.add('show');
+  const m = $('msg');
+  m.className = 'badge ' + (WARN.test(msg) ? 'bad' : 'info');
+  m.textContent = m.title = msg;
+  m.hidden = false;
   clearTimeout(toast.h);
-  toast.h = setTimeout(() => t.classList.remove('show'), 2600);
+  toast.h = setTimeout(restMsg, 6000);
 };
 const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -31,10 +42,7 @@ $('theme').onclick = () => {
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { applyTermTheme(); timeline.invalidate(); });
 
 // isolation badge
-const coi = $('coi');
-coi.textContent = self.crossOriginIsolated ? 'cross-origin isolated' : 'not isolated';
-coi.classList.add(self.crossOriginIsolated ? 'ok' : 'bad');
-if (!self.crossOriginIsolated) coi.title = 'Serve with tools/serve.py: the WebAssembly backend needs COOP and COEP';
+restMsg();
 
 // terminal
 const term = new Terminal({ convertEol: true, scrollback: 10000, fontSize: 13, cursorBlink: true,
