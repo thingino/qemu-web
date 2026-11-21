@@ -1,0 +1,59 @@
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SRC: themactep/thingino-firmware
+    steps:
+      - name: Checkout
+        run: git clone --depth 1 --single-branch --no-tags --branch "$GITHUB_REF_NAME" "https://github.com/$GITHUB_REPOSITORY" .
+
+      - name: Mirror the newest thingino QEMU images
+        run: |
+          tag=$(gh release list -R "$SRC" -L 50 --json tagName,createdAt \
+                --jq '[.[] | select(.tagName | startswith("qemu-images-"))] | sort_by(.createdAt) | last | .tagName')
+          test -n "$tag"
+          mkdir -p images
+          gh release download "$tag" -R "$SRC" -D images --pattern 'thingino-qemu_*.bin' --pattern SHA256SUMS
+          (cd images && sha256sum -c --ignore-missing SHA256SUMS)
+          python3 tools/image-index.py "$tag" images > images/index.json
+          rm images/SHA256SUMS
+
+      - name: Assemble the site
+        run: |
+          mkdir _site
+          cp -a index.html sw.js sw-register.js css js vendor core images _site/
+          touch _site/.nojekyll
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
