@@ -46,6 +46,9 @@
     <div class="row" id="hw-row" hidden>
       <label>Sensor <select id="sensor"></select></label>
       <label>Bus <select id="sensor-bus"><option>i2c0</option><option>i2c1</option><option>i2c2</option></select></label>
+      <label>Wi-Fi <select id="wifi"></select></label>
+      <label class="wifi-cfg" hidden>SSID <input id="ssid" size="10" value="thingino" maxlength="32"></label>
+      <label class="wifi-cfg" hidden>Password <input id="psk" size="12" value="thingino123" maxlength="63"></label>
       <label>Bootrom <input id="bootrom" type="file" accept=".bin,.rom,application/octet-stream"></label>
       <label id="boot-src-label" hidden>Boot from <select id="boot-src"><option value="0xfffffffd">SPI flash</option><option value="0xfffffffc">SD card</option><option value="0xffffffff">USB</option></select></label>
       <button id="bootrom-clear" type="button" hidden>Clear bootrom</button>

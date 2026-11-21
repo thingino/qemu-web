@@ -37,6 +37,10 @@ export async function run(data, send) {
       '-m', `${data.ramMb}M`);
     if (data.variant) args.push('-global', `${data.machine}.soc-variant=${data.variant}`);
     if (data.sensor) args.push('-device', `image-sensor,model=${data.sensor.model},bus=${data.sensor.bus},stamp=on`);
+    if (data.wifi) {
+      const q = (v) => String(v).replace(/,/g, ',,');
+      args.push('-device', `${data.wifi.chip},bus=${data.wifi.bus}${data.wifi.usb ? ',port=1' : ''},ssid=${q(data.wifi.ssid)}${data.wifi.psk ? ',psk=' + q(data.wifi.psk) : ''}`);
+    }
     if (data.bootrom) args.push('-bios', '/bootrom.bin', '-global', `ingenic-gpio.in-pc=${data.bootPins || '0xfffffffd'}`);
     args.push('-chardev', 'file,id=gpiotrace,path=/dev/gpiotrace', '-global', 'ingenic-gpio.trace=gpiotrace');
     let active = null, gtail = '';

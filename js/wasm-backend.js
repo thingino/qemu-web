@@ -52,7 +52,7 @@ export class WasmBackend extends Backend {
       }
     };
     const req = { type: 'start', image, machine, variant: options.variant || '',
-      ramMb: options.ramMb || RAM_MB[machine], sensor: options.sensor || null, bootrom: options.bootrom || null, bootPins: options.bootPins || '', base: new URL(this.base, location.href).href };
+      ramMb: options.ramMb || RAM_MB[machine], sensor: options.sensor || null, wifi: options.wifi || null, bootrom: options.bootrom || null, bootPins: options.bootPins || '', base: new URL(this.base, location.href).href };
     if (inline) {
       // On the page itself: no nested workers, but Stop and Reset cannot end it
       const r = await import('./wasm-runner.js');

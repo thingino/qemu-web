@@ -32,6 +32,7 @@ export class NativeBackend extends Backend {
     this.status('starting', { message: 'starting QEMU on the server' });
     const sensor = options.sensor ? { sensor: options.sensor.model, bus: options.sensor.bus } : {};
     if (options.bootPins) sensor.bootpins = options.bootPins;
+    if (options.wifi) Object.assign(sensor, { wifi: options.wifi.chip, ssid: options.wifi.ssid, psk: options.wifi.psk });
     await this.post('bootrom', options.bootrom || new Uint8Array(0));
     const qs = new URLSearchParams({ machine, variant: options.variant || '', name: options.name || 'upload.bin', ...sensor });
     let st;

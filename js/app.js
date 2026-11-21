@@ -16,6 +16,12 @@ function restMsg() {
   m.title = 'The page must be cross-origin isolated (COOP and COEP) for QEMU\'s threads';
   m.hidden = self.crossOriginIsolated;
 }
+// A message that stays until the next one
+function status(msg) {
+  const m = $('msg');
+  clearTimeout(toast.h);
+  m.className = 'badge info'; m.textContent = m.title = msg; m.hidden = false;
+}
 const toast = (msg) => {
   const m = $('msg');
   m.className = 'badge ' + (WARN.test(msg) ? 'bad' : 'info');
@@ -133,11 +139,38 @@ const SENSORS = 'cv2003 cv2005 cv8001 gc1084 gc2023 gc2053 gc2063 gc2083 gc3003a
 const PART_SENSOR = { t10n: ['jxh42', 'i2c0'], t20x: ['jxf22', 'i2c0'], t21n: ['sc2232h', 'i2c0'], t23n: ['sc2336', 'i2c0'],
   t30x: ['sc4236', 'i2c0'], t31x: ['gc2053', 'i2c0'], t32nq: ['cv8001', 'i2c0'], t40nn: ['imx307', 'i2c1'], t41nq: ['gc4023', 'i2c0'] };
 $('sensor').innerHTML = '<option value="">none</option>' + SENSORS.map((s) => `<option>${s}</option>`).join('');
+// Wi-Fi chips the fork models, with the names thingino's camera configs use for them
+const WIFI = [
+  ['atbm6031', 'sdio', 'atbm6031 atbm6031x'], ['atbm6041', 'sdio', 'atbm6041'], ['atbm6441', 'sdio', 'atbm6441'],
+  ['atbm6062s', 'sdio', 'atbm6062s'], ['atbm6162s', 'sdio', 'atbm6162s'],
+  ['rtl8189fs', 'sdio', 'rtl8189fs rtl8189ftv'], ['rtl8189es', 'sdio', 'rtl8189es rtl8189etv'], ['rtl8192fs', 'sdio', 'rtl8192fs'],
+  ['aic8800d80-sdio', 'sdio', 'aic8800d40'], ['aic8800d40l-sdio', 'sdio', ''], ['bcm43438', 'sdio', 'syn4343 bcm43438'],
+  ['bcm43436', 'sdio', 'bcm43436'], ['hi3881', 'sdio', 'hi3881'], ['ssv6158', 'sdio', 'ssv6158'],
+  ['aic8800', 'usb', 'aic8800d'], ['aic8800d80', 'usb', 'aic8800u'], ['aic8800dc', 'usb', 'aic8800dc'], ['aic8800dw', 'usb', 'aic8800dw'],
+  ['atbm6012b', 'usb', 'atbm6012b'], ['atbm6012bx', 'usb', 'atbm6012bx'], ['atbm6032', 'usb', 'atbm6032'], ['atbm6132u', 'usb', 'atbm6132u'],
+  ['atbm6062u', 'usb', 'atbm6062u'], ['atbm6062cu', 'usb', 'atbm6062cu'], ['atbm6132cu', 'usb', 'atbm6132cu'],
+  ['mt7601u', 'usb', 'mt7601 mt7601u mt7601sta'], ['rtl8188fu', 'usb', 'rtl8188ftv rtl8188fu'], ['rtl8188eu', 'usb', 'rtl8188eu rtl8188eus'],
+  ['rtl8733bu', 'usb', 'rtl8131bu rtl8731 rtl8731bu rtl8733bu'], ['ssv6155p', 'usb', 'ssv6155 ssv6155p ssv6256p'], ['ssv6355', 'usb', 'ssv6355'],
+  ['swt6621s', 'usb', 'swt6621s'], ['txw901u', 'usb', 'txw901u'], ['wq9001', 'usb', 'wq9001'], ['ws73v100', 'usb', 'ws73v100'],
+].map(([chip, bus, names]) => ({ chip, bus, names: names.split(' ').filter(Boolean) }));
+$('wifi').innerHTML = '<option value="">none</option>' + WIFI.map((w) => `<option value="${w.chip}">${w.chip} (${w.bus.toUpperCase()})</option>`).join('');
+const showWifiCfg = () => document.querySelectorAll('.wifi-cfg').forEach((e) => { e.hidden = !$('wifi').value; });
+$('wifi').onchange = showWifiCfg;
+function pickWifi(name) {
+  const words = name.toLowerCase().split(/[^a-z0-9]+/);
+  $('wifi').value = WIFI.find((w) => w.names.some((n) => words.includes(n)))?.chip || '';
+  showWifiCfg();
+}
+function wifiOption() {
+  const w = WIFI.find((x) => x.chip === $('wifi').value);
+  return w ? { chip: w.chip, bus: w.bus === 'usb' ? 'usb-bus.0' : 'msc1', usb: w.bus === 'usb', ssid: $('ssid').value, psk: $('psk').value } : null;
+}
 function pickSensor(name, variant) {
   const words = name.toLowerCase().split(/[^a-z0-9]+/);
   const hit = SENSORS.filter((s) => words.includes(s)).sort((a, b) => b.length - a.length)[0];
   const [model, bus] = hit ? [hit, PART_SENSOR[variant]?.[1] || 'i2c0'] : (PART_SENSOR[variant] || ['', 'i2c0']);
   $('sensor').value = model; $('sensor-bus').value = bus;
+  pickWifi(name);
 }
 $('bootrom').onchange = async (e) => {
   const f = e.target.files[0];
@@ -212,6 +245,10 @@ let staticImages = null;
 const FW_PROXY = 'https://thingino-dfu-fw.thingino.workers.dev/fw';
 const releases = {};
 async function loadReleases() {
+  $('rel-label').hidden = false; $('srv-label').hidden = false;
+  $('release').innerHTML = '<option>Loading…</option>'; $('release').disabled = true;
+  $('srvimg').options[0].textContent = 'Loading…';
+  status('Loading thingino releases…');
   try {
     const idx = await (await fetch('images/index.json')).json();
     releases[idx.release] = { label: `${idx.release.replace('qemu-images-', 'QEMU test images ')}`,
@@ -230,7 +267,9 @@ async function loadReleases() {
       if (imgs.length) releases[x.tag_name] = { label: `${m[1]} ${m[2]}`, images: imgs };
     }
   } catch (err) { toast('Could not list thingino releases: ' + err.message); }
-  if (!Object.keys(releases).length) return;
+  $('release').innerHTML = ''; $('release').disabled = false;
+  if (!Object.keys(releases).length) { $('rel-label').hidden = true; $('srvimg').options[0].textContent = '(use the file above)'; return; }
+  toast(`Found ${Object.keys(releases).length} releases`);
   for (const [tag, r] of Object.entries(releases)) $('release').add(new Option(`${r.label} (${r.images.length})`, tag));
   $('rel-label').hidden = $('imgfilter').hidden = false;
   $('srv-label').firstChild.textContent = 'Image ';
@@ -363,6 +402,7 @@ $('start').onclick = async () => {
       variant: $('variant').value.trim(), speed: Number($('speed').value), recording: $('recording').value,
       serverImage, name: image?.info.name,
       sensor: $('sensor').value ? { model: $('sensor').value, bus: $('sensor-bus').value } : null,
+      wifi: wifiOption(),
       bootrom: bootrom?.bytes ?? null, bootPins: bootrom ? $('boot-src').value : '',
     });
   } catch (err) {
