@@ -46,13 +46,14 @@ export class WasmBackend extends Backend {
       switch (data.type) {
         case 'uart': this.uart(data.bytes); break;
         case 'gpio': this.gpio(data.text); break;
+        case 'isp': this.emit('isp', data.text); break;
         case 'ready': this.status('running', { guestNs: this.guestNs, message: 'running in this browser' }); break;
         case 'log': console.warn('[qemu]', data.text); break;
         case 'error': this.status('error', { message: data.message }); this.kill(); break;
       }
     };
     const req = { type: 'start', image, machine, variant: options.variant || '',
-      ramMb: options.ramMb || RAM_MB[machine], sensor: options.sensor || null, wifi: options.wifi || null, bootrom: options.bootrom || null, bootPins: options.bootPins || '', base: new URL(this.base, location.href).href };
+      ramMb: options.ramMb || RAM_MB[machine], sensor: options.sensor || null, isp: !!options.isp, wifi: options.wifi || null, bootrom: options.bootrom || null, bootPins: options.bootPins || '', base: new URL(this.base, location.href).href };
     if (inline) {
       // On the page itself: no nested workers, but Stop and Reset cannot end it
       const r = await import('./wasm-runner.js');

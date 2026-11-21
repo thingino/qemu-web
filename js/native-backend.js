@@ -1,7 +1,7 @@
 import { Backend } from './backend.js';
 
 // Talks to tools/serve.py's /api (a native QEMU on the server): SSE for the
-// UART and GPIO streams, POSTs for keystrokes, reset and pin drives.
+// UART, pin (GPIO, timer unit, PWM) and ISP trace streams, POSTs for keystrokes, reset and pin drives.
 export class NativeBackend extends Backend {
   constructor(base = 'api/') {
     super();
@@ -32,6 +32,7 @@ export class NativeBackend extends Backend {
     this.status('starting', { message: 'starting QEMU on the server' });
     const sensor = options.sensor ? { sensor: options.sensor.model, bus: options.sensor.bus } : {};
     if (options.bootPins) sensor.bootpins = options.bootPins;
+    if (options.isp) sensor.isp = '1';
     if (options.wifi) Object.assign(sensor, { wifi: options.wifi.chip, ssid: options.wifi.ssid, psk: options.wifi.psk });
     await this.post('bootrom', options.bootrom || new Uint8Array(0));
     const qs = new URLSearchParams({ machine, variant: options.variant || '', name: options.name || 'upload.bin', ...sensor });
@@ -43,7 +44,10 @@ export class NativeBackend extends Backend {
       st = await this.post('start?' + qs, image);
     }
     this.open('uart', (d) => this.emit('uart', Uint8Array.from(atob(d), (c) => c.charCodeAt(0))));
-    this.open('gpio', (d) => this.emit('gpio', d));
+    // a stream event may carry several lines
+    const lines = (kind) => (d) => { for (const l of d.split('\n')) if (l) this.emit(kind, l); };
+    for (const n of ['gpio', 'tcu', 'pwm']) this.open(n, lines('gpio'));
+    if (options.isp) this.open('isp', (d) => this.emit('isp', d));
     this.poll = setInterval(() => this.refresh(), 500);
     this.refresh(st);
   }

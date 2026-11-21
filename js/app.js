@@ -3,7 +3,9 @@ import { WasmBackend } from './wasm-backend.js';
 import { NativeBackend } from './native-backend.js';
 import { MACHINES, describeImage, fmtBytes, socFromText } from './imageinfo.js';
 import { STAGES, StageDetector, stripAnsi } from './stages.js';
-import { GpioModel, PinTable, Timeline } from './gpio.js';
+import { GpioModel, PinTable, PwmTable, Timeline, pwmText } from './gpio.js';
+import { IspModel, IspPanel } from './isp.js';
+import { TextRing, pinsVcd, ispVcd, saveText } from './vcd.js';
 
 const $ = (id) => document.getElementById(id);
 // Messages show in the header; between messages it says whether the page is
@@ -96,19 +98,33 @@ const pinTable = new PinTable($('pins'), (gpio) => drivePin(gpio));
 const timeline = new Timeline($('tl'), model);
 $('win').onchange = (e) => timeline.setWindow(Number(e.target.value));
 $('follow').onchange = (e) => timeline.setFollow(e.target.checked);
+const pwmTable = new PwmTable($('pwm'));
+const pinLog = new TextRing(4 << 20);
+(function paintPwm() { pwmTable.flush(); requestAnimationFrame(paintPwm); })();
+function recentLine(html) {
+  const li = document.createElement('li');
+  li.innerHTML = html;
+  const ul = $('recent');
+  ul.prepend(li);
+  while (ul.children.length > 60) ul.lastChild.remove();
+}
 function onGpio(line) {
   const e = model.apply(line);
   if (!e) return;
+  pinLog.push(line + '\n');
+  if (e.kind === 'pwm-reset') return;
+  if (e.kind === 'pwm') {
+    pwmTable.update(model.pwm.get(e.name));
+    timeline.invalidate();
+    recentLine(`${(e.tMs / 1000).toFixed(3).padStart(8)} s  <b>${e.name}</b> ${pwmText(e).what}  ${e.src === 'hw' ? 'block' : e.pc || ''}`);
+    return;
+  }
   $('pins-empty').hidden = true;
   pinTable.update(model, e);
   timeline.invalidate();
   if (e.kind === 'pin') {
-    const li = document.createElement('li');
     const lvl = e.lvl === undefined ? '' : ' ' + e.lvl;
-    li.innerHTML = `${(e.tMs / 1000).toFixed(3).padStart(8)} s  <b>${e.pin}</b> ${e.fn}${lvl}  ${e.src ? 'outside' : e.pc}`;
-    const ul = $('recent');
-    ul.prepend(li);
-    while (ul.children.length > 60) ul.lastChild.remove();
+    recentLine(`${(e.tMs / 1000).toFixed(3).padStart(8)} s  <b>${e.pin}</b> ${e.fn}${lvl}  ${e.src ? 'outside' : e.pc}`);
   }
 }
 function drivePin(gpio) {
@@ -119,6 +135,25 @@ function drivePin(gpio) {
   // properties get set once the module exposes them.
   toast(backend.gpioDrive(p.pin, next) ? `${p.pin} driven ${next}` : 'This backend cannot drive pins yet');
 }
+
+// isp
+const isp = new IspModel();
+const ispRing = new TextRing(24 << 20);
+new IspPanel({ sum: $('isp-sum'), rows: $('isp-rows'), notes: $('isp-notes'), empty: $('isp-empty') }, isp);
+function onIsp(text) { ispRing.push(text + '\n'); isp.feed(text); }
+$('isp-clear').onclick = () => { isp.clear(); ispRing.clear(); };
+const stamp = () => new Date().toISOString().replace(/[:.]/g, '-');
+// Saves what a builder makes from the retained text; says so when its start was cut off
+function download(ring, make, name, type) {
+  const out = make(ring.text());
+  if (!out) return toast('Nothing to save yet');
+  saveText(out, name, type);
+  if (ring.cut) toast('Saved; the oldest events were dropped to stay in memory');
+}
+$('dl-isp-log').onclick = () => download(ispRing, (t) => t, `thingino-isp-${stamp()}.log`);
+$('dl-isp-vcd').onclick = () => download(ispRing, ispVcd, `thingino-isp-${stamp()}.vcd`);
+$('dl-pin-log').onclick = () => download(pinLog, (t) => t, `thingino-pins-${stamp()}.jsonl`);
+$('dl-pin-vcd').onclick = () => download(pinLog, pinsVcd, `thingino-pins-${stamp()}.vcd`);
 
 // stages
 const stages = new StageDetector();
@@ -333,6 +368,7 @@ function setState(state) {
   $('start').disabled = live;
   $('stop').disabled = !live;
   $('reset').disabled = !live;
+  $('isp-on').disabled = live;
 }
 function onStatus(s) {
   setState(s.state);
@@ -359,6 +395,7 @@ function bind() {
     b.bound = true;
     b.on('uart', (bytes) => { term.write(bytes); logPush(bytes); const was = stages.stage; if (stages.feed(bytes) !== was) showStage(); })
       .on('gpio', onGpio)
+      .on('isp', onIsp)
       .on('status', (s) => { if (b === backend) onStatus(s); });
   }
 }
@@ -378,7 +415,8 @@ function clearRun() {
   runStart = null;
   term.reset(); logChunks = []; logBytes = 0;
   stages.reset(); showStage();
-  model.clear(); pinTable.clear(); timeline.invalidate();
+  model.clear(); pinTable.clear(); pwmTable.clear(); pinLog.clear(); timeline.invalidate();
+  isp.clear(); ispRing.clear();
   $('recent').textContent = ''; $('pins-empty').hidden = false;
   $('st-time').textContent = '0.000 s'; $('st-speed').textContent = '-';
   lastSample = null;
@@ -404,7 +442,7 @@ $('start').onclick = async () => {
       variant: $('variant').value.trim(), speed: Number($('speed').value), recording: $('recording').value,
       serverImage, name: image?.info.name,
       sensor: $('sensor').value ? { model: $('sensor').value, bus: $('sensor-bus').value } : null,
-      wifi: wifiOption(),
+      wifi: wifiOption(), isp: $('isp-on').checked,
       bootrom: bootrom?.bytes ?? null, bootPins: bootrom ? $('boot-src').value : '',
     });
   } catch (err) {

@@ -2,12 +2,27 @@
 
 Boot thingino firmware for Ingenic cameras in your browser. The page runs the
 thingino QEMU fork, compiled to WebAssembly, and shows the serial console (you can
-type into it) and live GPIO activity: a pin table and a timeline.
+type into it) and live GPIO activity: a pin table, the PWM and timer outputs
+(level, frequency, duty) and a timeline of both. An optional ISP panel shows the
+camera pipeline frame by frame.
 
 Pick an image from a thingino release (the QEMU test images, any `firmware-*` or
 `master-*` release) or load a `.bin` from your computer. Optionally attach an image
 sensor model, or load a bootrom dump to boot through the real bootrom (choose SPI
 flash, SD card or USB as the boot source).
+
+## Traces
+
+- Pins: the GPIO, timer unit (`ingenic-tcu.trace`) and PWM (`ingenic-pwm.trace`) traces
+  always run (they are cheap). Pins and PWM channels share the timeline.
+- ISP: tick "ISP trace" before Start to log the ISP, Apical, noise reducer and image
+  sensor trace events (register reads left out). The panel lists each frame with its
+  interrupts, channel buffers pushed, filled or dropped (and why), the registers the
+  frame changed by name, and the sensor's exposure and gain. Tracing slows the guest, so
+  it is off by default. The last 24 MB of the log and 300 frames are kept.
+- Downloads: the pins and PWM as a VCD, the ISP registers as a VCD, and the raw logs
+  (`ISP log`, `Pin log`), which the fork's `contrib/ingenic/isp-trace.py` (snapshot,
+  diff, vcd) and `pin-trace.py` read.
 
 ## Browser support
 

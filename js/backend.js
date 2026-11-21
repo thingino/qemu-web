@@ -1,7 +1,8 @@
 // Backend contract shared by ReplayBackend and WasmBackend (see README).
 //   await start(imageBytes|null, machine, options)   stop()   reset()
 //   uartWrite(Uint8Array)   gpioDrive(pin, level)
-// events: 'uart' (Uint8Array), 'gpio' (one JSON line, string),
+// events: 'uart' (Uint8Array), 'gpio' (one JSON line, string: pin, timer unit or PWM),
+//         'isp' (ISP trace log text, whole lines),
 //         'status' ({state, guestNs, message}); state is one of
 //         idle | starting | running | stopped | error.
 

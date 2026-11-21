@@ -90,18 +90,40 @@
     </div>
     <div id="pins"></div>
     <p id="pins-empty" class="dim">No pin has changed yet. Click an input pin to drive it (not wired yet).</p>
+    <div id="pwm" aria-label="PWM and timer outputs"></div>
     <ul id="recent"></ul>
   </section>
 
   <section id="timeline" class="card">
     <div class="card-head">
       <h2>Timeline</h2><span class="grow"></span>
+      <button id="dl-pin-vcd" type="button" title="Pins, PWM and timer outputs as a waveform file (GTKWave, PulseView)">Pins VCD</button>
+      <button id="dl-pin-log" type="button" title="The pin, timer unit and PWM JSON lines, for the fork's pin-trace.py">Pin log</button>
       <label>Window
         <select id="win"><option value="10">10 s</option><option value="30" selected>30 s</option><option value="120">2 min</option><option value="0">all</option></select>
       </label>
       <label class="chk"><input id="follow" type="checkbox" checked> follow</label>
     </div>
     <div id="tl-wrap"><canvas id="tl"></canvas></div>
+  </section>
+
+  <section id="isp" class="card">
+    <div class="card-head">
+      <h2>ISP</h2><span class="grow"></span>
+      <label class="chk" title="Logs the ISP and sensor trace events. Slows the guest; applies at the next Start."><input id="isp-on" type="checkbox"> ISP trace</label>
+      <button id="dl-isp-vcd" type="button" title="The ISP registers, frame counters and sensor exposure as a waveform file">ISP VCD</button>
+      <button id="dl-isp-log" type="button" title="The raw trace log, for the fork's isp-trace.py (snapshot, diff, vcd)">ISP log</button>
+      <button id="isp-clear" type="button">Clear</button>
+    </div>
+    <p id="isp-empty" class="dim">No ISP events yet. Tick ISP trace before Start (it costs speed); frames appear once the guest's video streamer runs.</p>
+    <dl id="isp-sum"></dl>
+    <div class="tbl-wrap">
+      <table id="isp-table">
+        <thead><tr><th>Frame</th><th>IRQs</th><th>Channels</th><th>Register changes</th><th>Sensor</th></tr></thead>
+        <tbody id="isp-rows"></tbody>
+      </table>
+    </div>
+    <pre id="isp-notes" class="dim"></pre>
   </section>
 </main>
 <footer>
