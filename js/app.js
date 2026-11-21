@@ -291,12 +291,17 @@ function onStatus(s) {
   if (s.guestNs !== undefined) {
     $('st-time').textContent = (s.guestNs / 1e9).toFixed(3) + ' s';
     const now = performance.now();
-    if (!lastSample) lastSample = { ns: s.guestNs, at: now };
-    else if (now - lastSample.at >= 1000) {
-      const ratio = (s.guestNs - lastSample.ns) / 1e6 / (now - lastSample.at);
-      $('st-speed').textContent = ratio.toFixed(2) + 'x real time';
-      lastSample = { ns: s.guestNs, at: now };
+    // Guest time arrives in steps (kernel timestamps, GPIO events), so measure
+    // between steps over a sliding window rather than per status tick.
+    if (!lastSample) lastSample = [{ ns: s.guestNs, at: now }];
+    else if (s.guestNs !== lastSample[lastSample.length - 1].ns) {
+      lastSample.push({ ns: s.guestNs, at: now });
+      while (lastSample.length > 2 && now - lastSample[1].at > 15000) lastSample.shift();
+      const a = lastSample[0], span = now - a.at;
+      if (span >= 2000) $('st-speed').textContent = ((s.guestNs - a.ns) / 1e6 / span).toFixed(2) + 'x real time';
     }
+    // No guest clock output for a while (quiet init): nothing current to measure
+    else if (now - lastSample[lastSample.length - 1].at > 10000) $('st-speed').textContent = '-';
   }
 }
 function bind() {
