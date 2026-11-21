@@ -36,7 +36,7 @@ h2 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing
 main { display: grid; gap: 12px; padding: 12px 16px; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   grid-template-areas: "image controls" "console gpio" "timeline timeline"; }
 #image { grid-area: image; } #controls { grid-area: controls; } #console { grid-area: console; }
-#gpio { grid-area: gpio; } #timeline { grid-area: timeline; }
+#gpio { grid-area: gpio; display: flex; flex-direction: column; } #timeline { grid-area: timeline; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-width: 0; }
 .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .card-head h2 { margin: 0; }
@@ -77,7 +77,7 @@ dt { color: var(--dim); } dd { margin: 0; overflow-wrap: anywhere; }
 .legend { font-size: 12px; color: var(--dim); }
 .legend .k { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 3px 0 8px; }
 .k.out { background: var(--c-out); } .k.in { background: var(--c-in); } .k.irq { background: var(--c-irq); } .k.func { border: 1px dashed var(--c-func); }
-#recent { list-style: none; margin: 10px 0 0; padding: 0; font: 12px ui-monospace, monospace; max-height: 120px; overflow: auto; }
+#recent { list-style: none; margin: 10px 0 0; padding: 0; font: 12px ui-monospace, monospace; flex: 1 1 120px; min-height: 120px; height: 0; overflow: auto; }
 #recent li { color: var(--dim); white-space: nowrap; }
 #recent b { color: var(--fg); font-weight: 600; }
 #tl-wrap { overflow: hidden; } #tl { display: block; }
