@@ -43,6 +43,8 @@ jobs:
           ver="v$(cat VERSION)-${GITHUB_SHA::7}"
           sed -i "s#<span id=\"version-num\">dev</span>#<span id=\"version-num\">$ver</span>#" _site/index.html
           grep -q "$ver" _site/index.html
+          sed -i 's#^<html lang="en">#<html lang="en" data-static>#' _site/index.html
+          grep -q 'data-static' _site/index.html
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

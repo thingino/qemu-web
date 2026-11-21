@@ -292,7 +292,9 @@ $('imgfilter').oninput = showRelease;
 function pickWasm() {
   if (staticImages && backends.wasm && backend !== backends.wasm) { $('backend').value = 'wasm'; $('backend').dispatchEvent(new Event('change')); }
 }
-NativeBackend.available().then(async (ok) => {
+// The Pages build marks itself static: no server to probe (it would only 404)
+const STATIC = 'static' in document.documentElement.dataset;
+(STATIC ? Promise.resolve(false) : NativeBackend.available()).then(async (ok) => {
   if (!ok) {
     nativeOpt.remove();
     await loadReleases();
@@ -309,7 +311,7 @@ $('srvimg').onchange = (e) => {
 };
 // No recordings (the public site ships none): no Replay option
 const noReplay = () => { [...$('backend').options].find((o) => o.value === 'replay')?.remove(); $('rec-label').hidden = true; pickWasm(); };
-ReplayBackend.list().then((list) => {
+(STATIC ? Promise.resolve([]) : ReplayBackend.list()).then((list) => {
   if (!list.length) return noReplay();
   for (const r of list) $('recording').add(new Option(r.label, r.id));
 }).catch(noReplay);
